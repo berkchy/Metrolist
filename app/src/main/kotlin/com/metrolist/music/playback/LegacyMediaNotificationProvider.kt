@@ -186,7 +186,7 @@ internal class LegacyMediaNotificationProvider(
             R.id.media_title,
             metadata.title ?: context.getString(R.string.music_player),
         )
-        views.setTextViewText(R.id.media_artist, metadata.artist.orEmpty())
+        views.setTextViewText(R.id.media_artist, metadata.artist ?: "")
 
         views.setImageViewResource(
             R.id.media_play_pause,
