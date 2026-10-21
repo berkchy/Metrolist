@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Collapsed media notification for Android 11 (API 30) and below.
+
+    The collapsed notification is limited to about 48dp, so only the transport controls, the
+    metadata and the artwork fit in here. The expanded notification
+    (notification_media_expanded.xml) adds the scrubber and the secondary actions.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="4dp">
+
+    <ImageButton
+        android:id="@+id/media_previous"
+        android:layout_width="32dp"
+        android:layout_height="36dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/previous"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/skip_previous"
+        android:tint="@color/notification_text_primary" />
+
+    <ImageButton
+        android:id="@+id/media_play_pause"
+        android:layout_width="36dp"
+        android:layout_height="40dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/play_pause"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/play"
+        android:tint="@color/notification_text_primary" />
+
+    <ImageButton
+        android:id="@+id/media_next"
+        android:layout_width="32dp"
+        android:layout_height="36dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/next"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/skip_next"
+        android:tint="@color/notification_text_primary" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/media_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/notification_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/media_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/notification_text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/media_artwork"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:contentDescription="@string/album_art"
+        android:scaleType="centerCrop"
+        android:src="@drawable/notification_artwork_placeholder" />
+</LinearLayout>

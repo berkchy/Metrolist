@@ -190,6 +190,8 @@ import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.extensions.toPersistQueue
 import com.metrolist.music.extensions.toQueue
+import com.metrolist.music.extensions.togglePlayPause
+import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.lyrics.LyricsHelper
 import com.metrolist.music.models.PersistPlayerState
 import com.metrolist.music.models.PersistQueue
@@ -472,6 +474,8 @@ class MusicService :
     @Volatile
     private var latestMediaNotification: Notification? = null
 
+    private var legacyMediaNotificationProvider: LegacyMediaNotificationProvider? = null
+
     private var scrobbleManager: ScrobbleManager? = null
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
@@ -642,6 +646,15 @@ class MusicService :
                 setSmallIcon(R.drawable.small_icon)
             }
 
+        // Android 12 renders the redesigned media notification itself, older platforms still use
+        // the legacy media template and need the layout to be drawn by the app.
+        legacyMediaNotificationProvider =
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                LegacyMediaNotificationProvider(this, scope, ::isCurrentSongLiked)
+            } else {
+                null
+            }
+
         setMediaNotificationProvider(
             object : MediaNotification.Provider {
                 override fun createNotification(
@@ -657,7 +670,8 @@ class MusicService :
                             onNotificationChangedCallback.onNotificationChanged(notification)
                         }
 
-                    return defaultMediaNotificationProvider
+                    val provider = legacyMediaNotificationProvider ?: defaultMediaNotificationProvider
+                    return provider
                         .createNotification(
                             mediaSession,
                             mediaButtonPreferences,
@@ -672,10 +686,23 @@ class MusicService :
                     session: MediaSession,
                     action: String,
                     extras: Bundle,
-                ): Boolean = defaultMediaNotificationProvider.handleCustomCommand(session, action, extras)
+                ): Boolean {
+                    val legacyProvider = legacyMediaNotificationProvider
+                    return if (legacyProvider != null) {
+                        legacyProvider.handleCustomCommand(session, action, extras)
+                    } else {
+                        defaultMediaNotificationProvider.handleCustomCommand(session, action, extras)
+                    }
+                }
 
-                override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo =
-                    defaultMediaNotificationProvider.notificationChannelInfo
+                override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo {
+                    val legacyProvider = legacyMediaNotificationProvider
+                    return if (legacyProvider != null) {
+                        legacyProvider.getNotificationChannelInfo()
+                    } else {
+                        defaultMediaNotificationProvider.notificationChannelInfo
+                    }
+                }
             },
         )
         player = createExoPlayer(prefs = startupPrefs!!)
@@ -1659,7 +1686,12 @@ class MusicService :
                     .build(),
             ),
         )
+        legacyMediaNotificationProvider?.refresh(isLiked)
     }
+
+    /** Whether the currently playing song is liked (or saved, for podcast episodes). */
+    private fun isCurrentSongLiked(): Boolean =
+        currentSong.value?.song?.let { if (it.isEpisode) it.inLibrary != null else it.liked } == true
 
     /**
      * Registers / refreshes song metadata (title, duration, isVideo, related songs)
@@ -4460,6 +4492,33 @@ class MusicService :
             PlaylistWidgetReceiver.ACTION_PLAY_TARGET -> {
                 handlePlaylistWidgetPlay(intent)
             }
+
+            ACTION_NOTIFICATION_PREVIOUS -> {
+                player.seekToPrevious()
+                updateWidgetUI(player.isPlaying)
+            }
+
+            ACTION_NOTIFICATION_PLAY_PAUSE -> {
+                player.togglePlayPause()
+                updateWidgetUI(player.isPlaying)
+            }
+
+            ACTION_NOTIFICATION_NEXT -> {
+                player.seekToNext()
+                updateWidgetUI(player.isPlaying)
+            }
+
+            ACTION_NOTIFICATION_SHUFFLE -> {
+                player.shuffleModeEnabled = !player.shuffleModeEnabled
+            }
+
+            ACTION_NOTIFICATION_REPEAT -> {
+                player.toggleRepeatMode()
+            }
+
+            ACTION_NOTIFICATION_LIKE -> {
+                toggleLike()
+            }
         }
 
         return super.onStartCommand(intent, flags, startId)
@@ -5047,6 +5106,13 @@ class MusicService :
 
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
+
+        const val ACTION_NOTIFICATION_PREVIOUS = "com.metrolist.music.notification.PREVIOUS"
+        const val ACTION_NOTIFICATION_PLAY_PAUSE = "com.metrolist.music.notification.PLAY_PAUSE"
+        const val ACTION_NOTIFICATION_NEXT = "com.metrolist.music.notification.NEXT"
+        const val ACTION_NOTIFICATION_SHUFFLE = "com.metrolist.music.notification.SHUFFLE"
+        const val ACTION_NOTIFICATION_REPEAT = "com.metrolist.music.notification.REPEAT"
+        const val ACTION_NOTIFICATION_LIKE = "com.metrolist.music.notification.LIKE"
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"

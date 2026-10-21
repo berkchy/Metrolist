@@ -3,4 +3,10 @@
     <!-- Widget colors for dark mode -->
     <color name="widget_text_primary">#E6E1E5</color>
     <color name="widget_text_secondary">#CAC4D0</color>
+
+    <!-- Media notification colors for dark mode -->
+    <color name="notification_text_primary">#FFFFFFFF</color>
+    <color name="notification_text_secondary">#B3FFFFFF</color>
+    <color name="notification_accent">#FFFF8A94</color>
+    <color name="notification_progress_track">#33FFFFFF</color>
 </resources>
