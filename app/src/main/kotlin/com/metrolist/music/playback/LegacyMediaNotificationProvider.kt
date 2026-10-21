@@ -235,8 +235,13 @@ internal class LegacyMediaNotificationProvider(
             "setColorFilter",
             if (player.repeatMode == Player.REPEAT_MODE_OFF) secondaryText else accentColor,
         )
-        views.setInt(R.id.media_progress, "setProgressTintList", android.content.res.ColorStateList.valueOf(accentColor))
-        views.setInt(R.id.media_progress, "setProgressBackgroundTintList", android.content.res.ColorStateList.valueOf(trackColor))
+        try {
+            views.setInt(R.id.media_progress, "setProgressTintList", android.content.res.ColorStateList.valueOf(accentColor))
+            views.setInt(R.id.media_progress, "setProgressBackgroundTintList", android.content.res.ColorStateList.valueOf(trackColor))
+        } catch (_: Exception) {
+            views.setInt(R.id.media_progress, "setProgressTint", accentColor)
+            views.setInt(R.id.media_progress, "setProgressBackgroundTint", trackColor)
+        }
 
         views.setOnClickPendingIntent(
             R.id.media_previous,
@@ -368,7 +373,7 @@ internal class LegacyMediaNotificationProvider(
     }
 
     private fun adjustAlpha(color: Int, alpha: Float): Int {
-        val a = (alpha * 255).roundToInt().coerceIn(0, 255)
+        val a = Math.round(alpha * 255).coerceIn(0, 255)
         return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color))
     }
 
