@@ -21,11 +21,11 @@ dependencyResolutionManagement {
             }
             filter {
                 if (useMavenLocalInnerTubeX) {
-                    includeModule("com.github.MetrolistGroup", "innertubex")
-                    includeModule("com.github.MetrolistGroup", "innertubex-android")
-                    includeModule("com.github.MetrolistGroup", "innertubex-desktop")
+                    includeModule("com.github.berkchy", "innertubex")
+                    includeModule("com.github.berkchy", "innertubex-android")
+                    includeModule("com.github.berkchy", "innertubex-desktop")
                 } else {
-                    includeGroup("com.github.MetrolistGroup.innertubex")
+                    includeGroup("com.github.berkchy.innertubex")
                 }
             }
         }
