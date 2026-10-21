@@ -235,13 +235,6 @@ internal class LegacyMediaNotificationProvider(
             "setColorFilter",
             if (player.repeatMode == Player.REPEAT_MODE_OFF) secondaryText else accentColor,
         )
-        try {
-            views.setInt(R.id.media_progress, "setProgressTintList", android.content.res.ColorStateList.valueOf(accentColor))
-            views.setInt(R.id.media_progress, "setProgressBackgroundTintList", android.content.res.ColorStateList.valueOf(trackColor))
-        } catch (_: Exception) {
-            views.setInt(R.id.media_progress, "setProgressTint", accentColor)
-            views.setInt(R.id.media_progress, "setProgressBackgroundTint", trackColor)
-        }
 
         views.setOnClickPendingIntent(
             R.id.media_previous,
