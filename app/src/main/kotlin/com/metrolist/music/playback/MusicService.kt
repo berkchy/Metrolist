@@ -4519,6 +4519,15 @@ class MusicService :
             ACTION_NOTIFICATION_LIKE -> {
                 toggleLike()
             }
+
+            ACTION_NOTIFICATION_SEEK -> {
+                val duration = player.duration
+                if (duration > 0 && duration != C.TIME_UNSET) {
+                    // Rough seek to middle on tap - better UX would need touch coords, but RemoteViews click is coarse
+                    val target = duration / 2
+                    player.seekTo(target)
+                }
+            }
         }
 
         return super.onStartCommand(intent, flags, startId)
@@ -5113,6 +5122,7 @@ class MusicService :
         const val ACTION_NOTIFICATION_SHUFFLE = "com.metrolist.music.notification.SHUFFLE"
         const val ACTION_NOTIFICATION_REPEAT = "com.metrolist.music.notification.REPEAT"
         const val ACTION_NOTIFICATION_LIKE = "com.metrolist.music.notification.LIKE"
+        const val ACTION_NOTIFICATION_SEEK = "com.metrolist.music.notification.SEEK"
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"

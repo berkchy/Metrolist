@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Collapsed media notification for Android 11 (API 30) and below.
-
-    The collapsed notification is limited to about 48dp, so only the transport controls, the
-    metadata and the artwork fit in here. The expanded notification
-    (notification_media_expanded.xml) adds the scrubber and the secondary actions.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/media_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"

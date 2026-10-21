@@ -10,6 +10,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -22,6 +23,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
+import androidx.palette.graphics.Palette
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.MoreExecutors
 import com.metrolist.music.R
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -55,6 +58,11 @@ internal class LegacyMediaNotificationProvider(
     private var artworkUri: Uri? = null
     private var artworkBitmap: Bitmap? = null
     private var likedOverride: Boolean? = null
+    private var notificationBg: Int = Color.TRANSPARENT
+    private var accentColor: Int = Color.parseColor("#FFED5564")
+    private var primaryText: Int = Color.parseColor("#DE000000")
+    private var secondaryText: Int = Color.parseColor("#8A000000")
+    private var trackColor: Int = Color.parseColor("#33808080")
 
     override fun createNotification(
         mediaSession: MediaSession,
@@ -101,6 +109,7 @@ internal class LegacyMediaNotificationProvider(
                             Player.EVENT_MEDIA_METADATA_CHANGED,
                         )
                     ) {
+                        likedOverride = null
                         refresh()
                     }
                     if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
@@ -183,6 +192,12 @@ internal class LegacyMediaNotificationProvider(
         player: Player,
         metadata: MediaMetadata,
     ) {
+        views.setInt(R.id.media_root, "setBackgroundColor", notificationBg)
+        views.setTextColor(R.id.media_title, primaryText)
+        views.setTextColor(R.id.media_artist, secondaryText)
+        views.setTextColor(R.id.media_elapsed, secondaryText)
+        views.setTextColor(R.id.media_duration, secondaryText)
+
         views.setTextViewText(
             R.id.media_title,
             metadata.title ?: context.getString(R.string.music_player),
@@ -209,6 +224,19 @@ internal class LegacyMediaNotificationProvider(
             R.id.media_like,
             if (likedOverride ?: isLiked()) R.drawable.ic_heart else R.drawable.ic_heart_outline,
         )
+
+        views.setInt(R.id.media_previous, "setColorFilter", primaryText)
+        views.setInt(R.id.media_play_pause, "setColorFilter", primaryText)
+        views.setInt(R.id.media_next, "setColorFilter", primaryText)
+        views.setInt(R.id.media_shuffle, "setColorFilter", if (player.shuffleModeEnabled) accentColor else secondaryText)
+        views.setInt(R.id.media_like, "setColorFilter", if (likedOverride ?: isLiked()) accentColor else secondaryText)
+        views.setInt(
+            R.id.media_repeat,
+            "setColorFilter",
+            if (player.repeatMode == Player.REPEAT_MODE_OFF) secondaryText else accentColor,
+        )
+        views.setInt(R.id.media_progress, "setProgressTintList", android.content.res.ColorStateList.valueOf(accentColor))
+        views.setInt(R.id.media_progress, "setProgressBackgroundTintList", android.content.res.ColorStateList.valueOf(trackColor))
 
         views.setOnClickPendingIntent(
             R.id.media_previous,
@@ -248,11 +276,17 @@ internal class LegacyMediaNotificationProvider(
             views.setViewVisibility(R.id.media_elapsed, View.GONE)
             views.setViewVisibility(R.id.media_progress, View.GONE)
             views.setViewVisibility(R.id.media_duration, View.GONE)
+            if (R.id.media_seek_container != 0) {
+                views.setViewVisibility(R.id.media_seek_container, View.GONE)
+            }
             return
         }
         views.setViewVisibility(R.id.media_elapsed, View.VISIBLE)
         views.setViewVisibility(R.id.media_progress, View.VISIBLE)
         views.setViewVisibility(R.id.media_duration, View.VISIBLE)
+        if (R.id.media_seek_container != 0) {
+            views.setViewVisibility(R.id.media_seek_container, View.VISIBLE)
+        }
         views.setProgressBar(
             R.id.media_progress,
             PROGRESS_MAX,
@@ -261,6 +295,12 @@ internal class LegacyMediaNotificationProvider(
         )
         views.setTextViewText(R.id.media_elapsed, formatTime(position))
         views.setTextViewText(R.id.media_duration, formatTime(duration))
+        if (R.id.media_seek_container != 0) {
+            views.setOnClickPendingIntent(
+                R.id.media_seek_container,
+                servicePendingIntent(MusicService.ACTION_NOTIFICATION_SEEK, 6),
+            )
+        }
     }
 
     private fun loadArtwork(
@@ -271,6 +311,11 @@ internal class LegacyMediaNotificationProvider(
         if (uri == artworkUri) return
         artworkUri = uri
         artworkBitmap = null
+        notificationBg = Color.TRANSPARENT
+        accentColor = Color.parseColor("#FFED5564")
+        primaryText = Color.parseColor("#DE000000")
+        secondaryText = Color.parseColor("#8A000000")
+        trackColor = Color.parseColor("#33808080")
         val future =
             try {
                 session.bitmapLoader.loadBitmapFromMetadata(metadata)
@@ -288,12 +333,43 @@ internal class LegacyMediaNotificationProvider(
                 scope.launch {
                     if (artworkUri == uri) {
                         artworkBitmap = bitmap
+                        applyPalette(bitmap)
                         postNotification()
                     }
                 }
             },
             MoreExecutors.directExecutor(),
         )
+    }
+
+    private fun applyPalette(bitmap: Bitmap) {
+        try {
+            val palette = Palette.from(bitmap).generate()
+            val vibrant = palette.vibrantSwatch ?: palette.dominantSwatch ?: palette.mutedSwatch
+            val bg = vibrant?.rgb ?: palette.darkVibrantSwatch?.rgb ?: palette.dominantSwatch?.rgb
+            if (bg != null) {
+                notificationBg = bg
+                val text = if (isColorDark(bg)) Color.WHITE else Color.BLACK
+                primaryText = text
+                secondaryText = adjustAlpha(text, if (isColorDark(bg)) 0.7f else 0.6f)
+                accentColor = vibrant?.rgb ?: bg
+                trackColor = adjustAlpha(text, 0.25f)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun isColorDark(color: Int): Boolean {
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+        return luminance < 0.5
+    }
+
+    private fun adjustAlpha(color: Int, alpha: Float): Int {
+        val a = (alpha * 255).roundToInt().coerceIn(0, 255)
+        return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color))
     }
 
     private fun servicePendingIntent(

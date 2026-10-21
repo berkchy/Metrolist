@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Expanded media notification for Android 11 (API 30) and below.
-
-    API 31+ draws the redesigned media notification (square artwork on the right,
-    transport buttons on the left, elapsed/total time around the scrubber) itself.
-    Older platforms only render the legacy template, so the same layout is drawn
-    here with RemoteViews.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/media_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -141,6 +137,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/media_seek_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
