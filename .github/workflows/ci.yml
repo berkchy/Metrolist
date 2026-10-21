@@ -34,6 +34,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore app/persistent-debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Metrolist CI,O=Metrolist,C=US"
+
       - name: Build Debug APKs
         run: ./gradlew --console=plain assembleFossDebug assembleGmsDebug --warning-mode summary
         env:
