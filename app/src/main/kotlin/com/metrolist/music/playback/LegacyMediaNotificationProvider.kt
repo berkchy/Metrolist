@@ -164,6 +164,7 @@ internal class LegacyMediaNotificationProvider(
 
         return NotificationCompat
             .Builder(context, MusicService.CHANNEL_ID)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setSmallIcon(R.drawable.small_icon)
             .setContentIntent(session.sessionActivity)
             .setDeleteIntent(actionFactory?.createNotificationDismissalIntent(session))
