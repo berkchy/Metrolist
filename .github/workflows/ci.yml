@@ -111,6 +111,7 @@ jobs:
           } > release_notes.md
 
           gh release create "build-$short_sha" \
+            --repo "${{ github.repository }}" \
             --title "Debug build $short_sha" \
             --notes-file release_notes.md \
             --latest \
