@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
@@ -27,13 +28,14 @@ import androidx.palette.graphics.Palette
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.MoreExecutors
 import com.metrolist.music.R
+import com.metrolist.music.ui.theme.DefaultThemeColor
+import com.metrolist.music.ui.theme.rankedColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
-import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -184,6 +186,10 @@ internal class LegacyMediaNotificationProvider(
             .setShowWhen(false)
             .setOngoing(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Colorizes the inner content area of the notification with the color derived from
+            // the album art, while the notification card itself keeps the system background.
+            .setColorized(true)
+            .setColor(notificationBg)
             .build()
     }
 
@@ -235,6 +241,8 @@ internal class LegacyMediaNotificationProvider(
             "setColorFilter",
             if (player.repeatMode == Player.REPEAT_MODE_OFF) secondaryText else accentColor,
         )
+        views.setInt(R.id.media_progress, "setProgressTint", accentColor)
+        views.setInt(R.id.media_progress, "setProgressBackgroundTint", trackColor)
 
         views.setOnClickPendingIntent(
             R.id.media_previous,
@@ -342,17 +350,25 @@ internal class LegacyMediaNotificationProvider(
 
     private fun applyPalette(bitmap: Bitmap) {
         try {
-            val palette = Palette.from(bitmap).generate()
-            val vibrant = palette.vibrantSwatch ?: palette.dominantSwatch ?: palette.mutedSwatch
-            val bg = vibrant?.rgb ?: palette.darkVibrantSwatch?.rgb ?: palette.dominantSwatch?.rgb
-            if (bg != null) {
-                notificationBg = bg
-                val text = if (isColorDark(bg)) Color.WHITE else Color.BLACK
-                primaryText = text
-                secondaryText = adjustAlpha(text, if (isColorDark(bg)) 0.7f else 0.6f)
-                accentColor = vibrant?.rgb ?: bg
-                trackColor = adjustAlpha(text, 0.25f)
-            }
+            // Use the same color pipeline as the app UI so the notification and the player
+            // screen show the very same color for a song.
+            val color =
+                Palette
+                    .from(bitmap)
+                    .maximumColorCount(8)
+                    .resizeBitmapArea(PALETTE_AREA)
+                    .generate()
+                    .rankedColors(1, DefaultThemeColor.toArgb())
+                    .first()
+            notificationBg = color
+            val dark = isColorDark(color)
+            val text = if (dark) Color.WHITE else Color.BLACK
+            primaryText = text
+            secondaryText = adjustAlpha(text, if (dark) 0.7f else 0.6f)
+            // The accent has to stay readable on the background, so it is a lighter or darker
+            // variant of the very same hue.
+            accentColor = adjustBrightness(color, if (dark) 1.6f else 0.75f)
+            trackColor = adjustAlpha(text, 0.25f)
         } catch (_: Exception) {
         }
     }
@@ -368,6 +384,13 @@ internal class LegacyMediaNotificationProvider(
     private fun adjustAlpha(color: Int, alpha: Float): Int {
         val a = Math.round(alpha * 255).coerceIn(0, 255)
         return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color))
+    }
+
+    private fun adjustBrightness(color: Int, factor: Float): Int {
+        val r = (Color.red(color) * factor).toInt().coerceIn(0, 255)
+        val g = (Color.green(color) * factor).toInt().coerceIn(0, 255)
+        val b = (Color.blue(color) * factor).toInt().coerceIn(0, 255)
+        return Color.rgb(r, g, b)
     }
 
     private fun servicePendingIntent(
@@ -395,5 +418,6 @@ internal class LegacyMediaNotificationProvider(
 
     private companion object {
         const val PROGRESS_MAX = 1000
+        const val PALETTE_AREA = 100 * 100
     }
 }
