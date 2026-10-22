@@ -62,3 +62,64 @@ jobs:
           path: |
             app/build/outputs/apk/foss/debug/*.apk
             app/build/outputs/apk/gms/debug/*.apk
+
+  release:
+    name: Publish Debug Release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Debug APKs
+        uses: actions/download-artifact@v8
+        with:
+          name: app-debug-${{ github.sha }}
+          path: downloaded_artifacts/
+
+      - name: Organize APKs for release
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          mkdir -p release_files
+
+          FOSS_APK=$(find downloaded_artifacts -name "*foss*.apk" | head -1)
+          GMS_APK=$(find downloaded_artifacts -name "*gms*.apk" | head -1)
+
+          if [ -z "$FOSS_APK" ] || [ -z "$GMS_APK" ]; then
+            echo "Could not find the foss and gms APKs in the build artifact"
+            find downloaded_artifacts -name "*.apk"
+            exit 1
+          fi
+
+          mv "$FOSS_APK" "release_files/Metrolist-foss-debug-$short_sha.apk"
+          mv "$GMS_APK" "release_files/Metrolist-gms-debug-$short_sha.apk"
+
+          ls -la release_files/
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          {
+            echo "Debug build of commit $short_sha."
+            echo ""
+            echo "- Metrolist-foss-debug-$short_sha.apk (FOSS variant)"
+            echo "- Metrolist-gms-debug-$short_sha.apk (Google Play services variant)"
+          } > release_notes.md
+
+          gh release create "build-$short_sha" \
+            --title "Debug build $short_sha" \
+            --notes-file release_notes.md \
+            --latest \
+            release_files/*.apk
+
+      - name: Update release summary
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          echo "## Debug Release" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: $short_sha" >> $GITHUB_STEP_SUMMARY
+          echo "- **APKs**: $(ls release_files/*.apk | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release URL**: https://github.com/${{ github.repository }}/releases/tag/build-$short_sha" >> $GITHUB_STEP_SUMMARY

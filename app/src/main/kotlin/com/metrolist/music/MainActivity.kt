@@ -247,6 +247,7 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_AUTO_START_RECOGNITION = "auto_start_recognition"
         const val EXTRA_WIDGET_TARGET_TYPE = "widget_target_type"
         const val EXTRA_WIDGET_TARGET_ID = "widget_target_id"
+        const val EXTRA_OPEN_PLAYER = "open_player"
     }
 
     @Inject
@@ -854,6 +855,8 @@ class MainActivity : FragmentActivity() {
                         expandedBound = maxHeight,
                     )
 
+                var openPlayerRequested by rememberSaveable { mutableStateOf(false) }
+
                 val playerReadyState =
                     playerConnection?.service?.isPlayerReady?.collectAsStateWithLifecycle()
                         ?: remember { mutableStateOf(false) }
@@ -944,6 +947,13 @@ class MainActivity : FragmentActivity() {
                     }
                 }
 
+                LaunchedEffect(activePlayerConnection, openPlayerRequested) {
+                    if (openPlayerRequested && activePlayerConnection != null) {
+                        openPlayerRequested = false
+                        playerBottomSheetState.expandSoft()
+                    }
+                }
+
                 DisposableEffect(activePlayerConnection, playerBottomSheetState) {
                     val player = runCatching { activePlayerConnection?.player }.getOrNull()
                         ?: return@DisposableEffect onDispose { }
@@ -990,11 +1000,13 @@ class MainActivity : FragmentActivity() {
                         handleWidgetTargetIntent(pendingIntent!!, navController)
                         handleRecognitionIntent(pendingIntent!!, navController)
                         handleDeepLinkIntent(pendingIntent!!, navController)
+                        handleOpenPlayerIntent(pendingIntent!!) { openPlayerRequested = true }
                         pendingIntent = null
                     } else {
                         handleWidgetTargetIntent(intent, navController)
                         handleRecognitionIntent(intent, navController)
                         handleDeepLinkIntent(intent, navController)
+                        handleOpenPlayerIntent(intent) { openPlayerRequested = true }
                     }
                 }
 
@@ -1004,6 +1016,7 @@ class MainActivity : FragmentActivity() {
                             handleWidgetTargetIntent(intent, navController)
                             handleRecognitionIntent(intent, navController)
                             handleDeepLinkIntent(intent, navController)
+                            handleOpenPlayerIntent(intent) { openPlayerRequested = true }
                         }
 
                     addOnNewIntentListener(listener)
@@ -1541,6 +1554,19 @@ class MainActivity : FragmentActivity() {
         navController.navigate(if (autoStart) "recognition?autoStart=true" else "recognition") {
             launchSingleTop = true
         }
+    }
+
+    /**
+     * Handles the EXTRA_OPEN_PLAYER intent sent from the media notification, which asks for the
+     * player to be opened instead of the home screen.
+     */
+    private fun handleOpenPlayerIntent(
+        intent: Intent,
+        onOpenPlayer: () -> Unit,
+    ) {
+        if (!intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) return
+        intent.removeExtra(EXTRA_OPEN_PLAYER)
+        onOpenPlayer()
     }
 
     private sealed class WidgetTargetRoute(val route: String) {

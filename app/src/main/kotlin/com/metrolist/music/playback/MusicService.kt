@@ -732,8 +732,9 @@ class MusicService :
                 .setSessionActivity(
                     PendingIntent.getActivity(
                         this,
-                        0,
-                        Intent(this, MainActivity::class.java),
+                        REQUEST_CODE_SESSION_ACTIVITY,
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_OPEN_PLAYER, true),
                         PendingIntent.FLAG_IMMUTABLE,
                     ),
                 ).setBitmapLoader(CoilBitmapLoader(this, scope))
@@ -5118,6 +5119,7 @@ class MusicService :
 
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
+        const val REQUEST_CODE_SESSION_ACTIVITY = 1002
 
         const val ACTION_NOTIFICATION_PREVIOUS = "com.metrolist.music.notification.PREVIOUS"
         const val ACTION_NOTIFICATION_PLAY_PAUSE = "com.metrolist.music.notification.PLAY_PAUSE"
