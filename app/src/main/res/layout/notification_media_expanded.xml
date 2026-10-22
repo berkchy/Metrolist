@@ -137,7 +137,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/media_seek_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
@@ -151,17 +150,91 @@
             android:textColor="@color/notification_text_secondary"
             android:textSize="11sp" />
 
-        <ProgressBar
-            android:id="@+id/media_progress"
-            style="@android:style/Widget.ProgressBar.Horizontal"
+        <FrameLayout
+            android:id="@+id/media_seek_container"
             android:layout_width="0dp"
-            android:layout_height="4dp"
+            android:layout_height="32dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:max="1000"
-            android:progressBackgroundTint="@color/notification_progress_track"
-            android:progressTint="@color/notification_accent" />
+            android:layout_weight="1">
+
+            <ProgressBar
+                android:id="@+id/media_progress"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_gravity="center_vertical"
+                android:max="1000"
+                android:progressBackgroundTint="@color/notification_progress_track"
+                android:progressTint="@color/notification_accent" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:id="@+id/media_seek_0"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_2"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_3"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_4"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_5"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_6"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_7"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_8"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+                <LinearLayout
+                    android:id="@+id/media_seek_9"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent" />
+            </LinearLayout>
+        </FrameLayout>
 
         <TextView
             android:id="@+id/media_duration"

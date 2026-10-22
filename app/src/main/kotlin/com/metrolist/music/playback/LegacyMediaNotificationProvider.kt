@@ -10,7 +10,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapShader
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -298,10 +304,14 @@ internal class LegacyMediaNotificationProvider(
         )
         views.setTextViewText(R.id.media_elapsed, formatTime(position))
         views.setTextViewText(R.id.media_duration, formatTime(duration))
-        if (R.id.media_seek_container != 0) {
+        SEEK_ZONE_IDS.forEachIndexed { index, zoneId ->
             views.setOnClickPendingIntent(
-                R.id.media_seek_container,
-                servicePendingIntent(MusicService.ACTION_NOTIFICATION_SEEK, 6),
+                zoneId,
+                servicePendingIntent(
+                    MusicService.ACTION_NOTIFICATION_SEEK,
+                    REQUEST_CODE_NOTIFICATION_SEEK + index,
+                    index * SEEK_ZONE_PERCENT + SEEK_ZONE_PERCENT / 2,
+                ),
             )
         }
     }
@@ -334,7 +344,7 @@ internal class LegacyMediaNotificationProvider(
                     } ?: return@addListener
                 scope.launch {
                     if (artworkUri == uri) {
-                        artworkBitmap = bitmap
+                        artworkBitmap = roundCorners(bitmap)
                         applyPalette(bitmap)
                         postNotification()
                     }
@@ -388,14 +398,58 @@ internal class LegacyMediaNotificationProvider(
         return Color.rgb(r, g, b)
     }
 
+    /** [RemoteViews] cannot clip an [android.widget.ImageView] to rounded corners, so the corners
+     * are baked into the artwork bitmap before it is handed to the notification.
+     */
+    private fun roundCorners(bitmap: Bitmap): Bitmap {
+        return try {
+            val size = Math.max(1, Math.min(bitmap.width, bitmap.height))
+            val factor = ARTWORK_MAX_SIZE.toFloat() / size
+            val scaled =
+                if (factor < 1f) {
+                    Bitmap.createScaledBitmap(
+                        bitmap,
+                        (bitmap.width * factor).toInt().coerceAtLeast(1),
+                        (bitmap.height * factor).toInt().coerceAtLeast(1),
+                        true,
+                    )
+                } else {
+                    bitmap
+                }
+            val side = Math.min(scaled.width, scaled.height)
+            val left = (scaled.width - side) / 2
+            val top = (scaled.height - side) / 2
+            val output = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(output)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+            val shader = BitmapShader(scaled, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+            val matrix = Matrix()
+            matrix.setRectToRect(
+                RectF(left.toFloat(), top.toFloat(), (left + side).toFloat(), (top + side).toFloat()),
+                RectF(0f, 0f, side.toFloat(), side.toFloat()),
+                Matrix.ScaleToFit.FILL,
+            )
+            shader.setLocalMatrix(matrix)
+            paint.shader = shader
+            val radius = side * ARTWORK_CORNER_RATIO
+            canvas.drawRoundRect(RectF(0f, 0f, side.toFloat(), side.toFloat()), radius, radius, paint)
+            return output
+        } catch (_: Exception) {
+            bitmap
+        }
+    }
+
     private fun servicePendingIntent(
         action: String,
         requestCode: Int,
+        positionPercent: Int? = null,
     ): PendingIntent =
         PendingIntent.getService(
             context,
             requestCode,
-            Intent(context, MusicService::class.java).setAction(action),
+            Intent(context, MusicService::class.java)
+                .setAction(action)
+                .putExtra(MusicService.EXTRA_NOTIFICATION_SEEK_PERCENT, positionPercent ?: 0),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
@@ -414,5 +468,23 @@ internal class LegacyMediaNotificationProvider(
     private companion object {
         const val PROGRESS_MAX = 1000
         const val PALETTE_AREA = 100 * 100
+        const val SEEK_ZONE_PERCENT = 10
+        const val REQUEST_CODE_NOTIFICATION_SEEK = 100
+        const val ARTWORK_MAX_SIZE = 256
+        const val ARTWORK_CORNER_RATIO = 0.16f
+
+        val SEEK_ZONE_IDS: IntArray =
+            intArrayOf(
+                R.id.media_seek_0,
+                R.id.media_seek_1,
+                R.id.media_seek_2,
+                R.id.media_seek_3,
+                R.id.media_seek_4,
+                R.id.media_seek_5,
+                R.id.media_seek_6,
+                R.id.media_seek_7,
+                R.id.media_seek_8,
+                R.id.media_seek_9,
+            )
     }
 }
