@@ -64,7 +64,6 @@ internal class LegacyMediaNotificationProvider(
     private var accentColor: Int = Color.parseColor("#FFED5564")
     private var primaryText: Int = Color.parseColor("#DE000000")
     private var secondaryText: Int = Color.parseColor("#8A000000")
-    private var trackColor: Int = Color.parseColor("#33808080")
 
     override fun createNotification(
         mediaSession: MediaSession,
@@ -241,8 +240,6 @@ internal class LegacyMediaNotificationProvider(
             "setColorFilter",
             if (player.repeatMode == Player.REPEAT_MODE_OFF) secondaryText else accentColor,
         )
-        views.setInt(R.id.media_progress, "setProgressTint", accentColor)
-        views.setInt(R.id.media_progress, "setProgressBackgroundTint", trackColor)
 
         views.setOnClickPendingIntent(
             R.id.media_previous,
@@ -321,7 +318,6 @@ internal class LegacyMediaNotificationProvider(
         accentColor = Color.parseColor("#FFED5564")
         primaryText = Color.parseColor("#DE000000")
         secondaryText = Color.parseColor("#8A000000")
-        trackColor = Color.parseColor("#33808080")
         val future =
             try {
                 session.bitmapLoader.loadBitmapFromMetadata(metadata)
@@ -368,7 +364,6 @@ internal class LegacyMediaNotificationProvider(
             // The accent has to stay readable on the background, so it is a lighter or darker
             // variant of the very same hue.
             accentColor = adjustBrightness(color, if (dark) 1.6f else 0.75f)
-            trackColor = adjustAlpha(text, 0.25f)
         } catch (_: Exception) {
         }
     }
